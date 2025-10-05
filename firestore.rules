@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if true;
+      allow update: if isOwner(userId);
+      allow delete: if false;
+    }
+    
+    // Auctions collection
+    match /auctions/{auctionId} {
+      allow read: if true;
+      allow create: if isAuthenticated();
+      allow update: if isOwner(resource.data.sellerId) || isAuthenticated();
+      allow delete: if isOwner(resource.data.sellerId);
+    }
+    
+    // Bids collection
+    match /bids/{bidId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && 
+        request.auth.uid == request.resource.data.bidderId;
+      allow update, delete: if false;
+    }
+  }
+}
